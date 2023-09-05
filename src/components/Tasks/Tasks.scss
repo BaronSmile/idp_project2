@@ -1,0 +1,55 @@
+.tasks {
+  margin: 2em 0;
+  width: 100%;
+
+  &_table {
+    thead {
+      tr {
+        font-size: 20px;
+        letter-spacing: 2px;
+        th {
+          background-color: var(--header-color) !important;
+        }
+      }
+    }
+    tbody {
+      tr {
+        font-size: 16px;
+      }
+    }
+    .ant-table-row-selected {
+      td {
+        background-color: var(--border-color) !important;
+      }
+    }
+    .opacity_row {
+      td:first-child {
+        border-bottom: none;
+      }
+      td:not(:last-child) {
+        text-decoration: line-through;
+        color: #a19797;
+      }
+    }
+  }
+
+  .ant-space-item {
+    h1 {
+      margin-bottom: 10px !important;
+    }
+  }
+
+  .btn {
+    &_completed {
+      background-color: #2f3646;
+    }
+  }
+}
+
+.table_title {
+  margin-bottom: 1em;
+}
+
+.ant-pagination {
+  margin-top: 5px;
+}

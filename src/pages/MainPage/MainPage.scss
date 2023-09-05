@@ -1,0 +1,28 @@
+.main_page {
+  padding: 2em;
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1em;
+    align-items: center;
+  }
+}
+
+.data_length {
+  color: var(--text-color);
+  b {
+    color: var(--primary-color);
+  }
+}
+
+.point {
+  color: var(--primary-color);
+  padding-left: 5px;
+  &_label {
+    color: var(--text-color);
+  }
+}
