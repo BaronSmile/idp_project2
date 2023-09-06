@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Button, Form, Input, Modal, Select } from 'antd';
 import './ModalForm.scss';
 import { ITask } from '../../types/taskTypes';
+import { useAppSelector } from '../../hooks/redux';
 
 const { Option } = Select;
 
@@ -12,23 +13,31 @@ interface IProps {
   taskItem?: ITask | null;
 }
 
-const ModalForm = ({ isOpen, onFinish, setIsOpen, taskItem }: IProps) => {
+const ModalForm = ({ isOpen, onFinish, setIsOpen }: IProps) => {
   const [form] = Form.useForm();
+  const { task } = useAppSelector((state) => state.stateReducer);
 
   useEffect(() => {
-    form.setFieldsValue(taskItem);
-  }, [taskItem]);
+    form.setFieldsValue(task);
+  }, [task]);
+
+  const handleFinish = (values: any) => {
+    onFinish(values);
+    if (!isOpen) {
+      form.resetFields();
+    }
+  };
 
   return (
     <Modal
-      title={taskItem ? 'Изменить задачу' : 'Создать задачу'}
+      title={task ? 'Изменить задачу' : 'Создать задачу'}
       open={isOpen}
       onCancel={() => setIsOpen(false)}
       footer={null}
     >
       <Form
         form={form}
-        onFinish={onFinish}
+        onFinish={handleFinish}
         className="form_task"
         labelCol={{ span: 6 }}
         wrapperCol={{ span: 24 }}
@@ -52,7 +61,7 @@ const ModalForm = ({ isOpen, onFinish, setIsOpen, taskItem }: IProps) => {
           </Select>
         </Form.Item>
         <Form.Item className="form_btn">
-          <Button htmlType="submit">{taskItem ? `Изменить` : `Создать`}</Button>
+          <Button htmlType="submit">{task ? `Изменить` : `Создать`}</Button>
         </Form.Item>
       </Form>
     </Modal>

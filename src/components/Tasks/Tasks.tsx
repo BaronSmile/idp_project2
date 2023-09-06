@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Typography, Modal, Space, Button } from 'antd';
-import { DeleteOutlined, EditOutlined, CheckCircleOutlined } from '@ant-design/icons';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Button, Modal, Space, Table, Typography } from 'antd';
+import { CheckCircleOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
+import { useMutation } from '@tanstack/react-query';
 import Highlighter from 'react-highlight-words';
-import { completeTask, deleteTask, getTasks, updateTask } from '../../services/tasks';
-import { useAppDispatch } from '../../hooks/redux';
-import { setTasks } from '../../providers/store/reducers/StateSlice';
-import EditableCell from './EditableCell';
+import { completeTask, deleteTask, updateTask } from '../../services/tasks';
+import { useAppDispatch, useAppSelector } from '../../hooks/redux';
+import { setTask, setTasks } from '../../providers/store/reducers/StateSlice';
 import { ITask } from '../../types/taskTypes';
 import ModalForm from '../ModalForm/ModalForm';
 import { SortOrder } from 'antd/lib/table/interface';
@@ -14,52 +13,47 @@ import './Tasks.scss';
 
 interface TasksProps {
   searchValue: string;
+  dataSource: ITask[];
+  isLoading?: boolean;
+  refetch?: any;
 }
 
-const Tasks: React.FC<TasksProps> = ({ searchValue }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [stateTask, setStateTask] = useState<ITask | null>(null);
-  const [stateTasks, setStateTasks] = useState<any[]>([]);
-  const client = useQueryClient();
+const Tasks: React.FC<TasksProps> = ({ searchValue, dataSource, isLoading, refetch }) => {
+  const [isEditingModal, setIsEditingModal] = useState(false);
+
   const dispatch = useAppDispatch();
-  const { data, isLoading } = useQuery({
-    queryFn: () => getTasks(),
-    queryKey: ['tasks', 'all'],
-  });
+  const { tasks, task } = useAppSelector((state) => state.stateReducer);
 
   useEffect(() => {
-    setStateTasks(data ?? []);
-  }, [data]);
-
-  useEffect(() => {
-    dispatch(setTasks(stateTasks));
-  }, [stateTasks]);
+    dispatch(setTasks(dataSource ?? []));
+  }, [dataSource, dispatch]);
 
   useEffect(() => {
     if (searchValue) {
-      const filterSearchTasks = (data ?? []).filter((task) =>
+      const filterSearchTasks = (dataSource ?? []).filter((task) =>
         task.title.toLowerCase().includes(searchValue.toLowerCase()),
       );
-      setStateTasks(filterSearchTasks);
+      dispatch(setTasks(filterSearchTasks));
     } else {
-      setStateTasks(data ?? []);
+      dispatch(setTasks(dataSource ?? []));
     }
   }, [searchValue]);
 
   const { mutate: remove } = useMutation(['delete task'], deleteTask, {
     onSuccess: () => {
-      client.invalidateQueries({ queryKey: ['tasks', 'all'] });
+      refetch();
     },
   });
 
   const { mutate: update } = useMutation(['update task'], updateTask, {
     onSuccess: () => {
-      client.invalidateQueries({ queryKey: ['tasks', 'all'] });
+      refetch();
     },
   });
 
   const { mutate: completed } = useMutation(
     ['complete task'],
+    // Это оставил как подсказку на будущее
     // (args: { id: string; completed: boolean }) => {
     //   const { id, completed } = args;
     //   return completeTask(id, completed);
@@ -67,7 +61,7 @@ const Tasks: React.FC<TasksProps> = ({ searchValue }) => {
     completeTask,
     {
       onSuccess: () => {
-        client.invalidateQueries({ queryKey: ['tasks', 'all'] });
+        refetch();
       },
     },
   );
@@ -89,13 +83,15 @@ const Tasks: React.FC<TasksProps> = ({ searchValue }) => {
   };
 
   const onEditTask = (task: ITask) => {
-    setIsEditing(true);
-    setStateTask(task);
+    setIsEditingModal(true);
+    dispatch(setTask(task));
   };
 
-  const onUpdateTask = (task: ITask) => {
-    update({ id: stateTask?.id, ...task });
-    setIsEditing(false);
+  const onUpdateTask = (newTask: ITask) => {
+    if (task) {
+      update({ id: task?.id, ...newTask });
+    }
+    setIsEditingModal(false);
   };
 
   const onCompleteTask = (taskValue: ITask) => {
@@ -146,12 +142,8 @@ const Tasks: React.FC<TasksProps> = ({ searchValue }) => {
 
   const filterTasksByCompleted = (tasks: ITask[] | undefined, completed: boolean): void => {
     const filteredTasks = (tasks ?? []).filter((task) => task.completed === completed);
-    setStateTasks(filteredTasks);
+    dispatch(setTasks(filteredTasks));
   };
-
-  // const filterSearchTasks = (tasks: ITask[] | undefined, search: string): ITask[] => {
-  //   return (tasks ?? []).filter((task) => task.title.toLowerCase().includes(search.toLowerCase()));
-  // };
 
   const columns = [
     {
@@ -219,35 +211,31 @@ const Tasks: React.FC<TasksProps> = ({ searchValue }) => {
     <div className="tasks">
       <Space align={'center'} size={'middle'} className={'table_title'}>
         <Typography.Title>Таблица Задач</Typography.Title>
-        <Button onClick={() => setStateTasks(data ?? [])} className={'btn_completed'}>
+        <Button onClick={() => dispatch(setTasks(dataSource ?? []))} className={'btn_completed'}>
           Все задачи
         </Button>
-        <Button onClick={() => filterTasksByCompleted(data, false)} className={'btn_completed'}>
+        <Button
+          onClick={() => filterTasksByCompleted(dataSource, false)}
+          className={'btn_completed'}
+        >
           Активные задачи
         </Button>
-        <Button onClick={() => filterTasksByCompleted(data, true)} className={'btn_completed'}>
+        <Button
+          onClick={() => filterTasksByCompleted(dataSource, true)}
+          className={'btn_completed'}
+        >
           Завершенные задачи
         </Button>
       </Space>
       <Table
-        components={{
-          body: {
-            cell: EditableCell,
-          },
-        }}
         rowKey={(record) => record.id || Date.now()}
         rowClassName={rowStyle}
         loading={isLoading}
         className="tasks_table"
-        dataSource={stateTasks}
+        dataSource={tasks}
         columns={columns}
       />
-      <ModalForm
-        isOpen={isEditing}
-        setIsOpen={setIsEditing}
-        onFinish={onUpdateTask}
-        taskItem={stateTask}
-      />
+      <ModalForm isOpen={isEditingModal} setIsOpen={setIsEditingModal} onFinish={onUpdateTask} />
     </div>
   );
 };

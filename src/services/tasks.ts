@@ -22,6 +22,7 @@ export async function deleteTask(id: string) {
 }
 
 export async function updateTask(task: ITask) {
+  console.log('FETCH:', task);
   const res = await axios.put(`${urlBASE}/${task.id}`, task);
   return res.data;
 }

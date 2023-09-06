@@ -5,27 +5,23 @@ import Tasks from '../../components/Tasks/Tasks';
 import { useAppSelector } from '../../hooks/redux';
 import ModalForm from '../../components/ModalForm/ModalForm';
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { createTask, getTasks } from '../../services/tasks';
 import './MainPage.scss';
-import { ITask } from '../../types/taskTypes';
 
 const MainPage = () => {
   const [searchValue, setSearchValue] = useState('');
   const [isOpenModal, setIsOpenModal] = useState(false);
   const { tasks } = useAppSelector((state) => state.stateReducer);
 
-  const client = useQueryClient();
-
-  const { data } = useQuery({
-    queryFn: () => getTasks(),
-    queryKey: ['tasks', 'all'],
+  const { data, refetch, isLoading } = useQuery(['tasks', 'all'], () => getTasks(), {
+    initialData: [],
   });
 
   const { mutate: create } = useMutation({
     mutationFn: createTask,
     onSuccess: () => {
-      client.invalidateQueries({ queryKey: ['tasks', 'all'] });
+      refetch();
     },
   });
 
@@ -72,7 +68,7 @@ const MainPage = () => {
         </Space>
       </div>
       <ModalForm isOpen={isOpenModal} setIsOpen={setIsOpenModal} onFinish={onFinish} />
-      <Tasks searchValue={searchValue} />
+      <Tasks searchValue={searchValue} dataSource={data} isLoading={isLoading} refetch={refetch} />
     </div>
   );
 };
